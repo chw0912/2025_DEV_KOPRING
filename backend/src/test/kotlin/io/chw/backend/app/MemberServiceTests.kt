@@ -1,7 +1,6 @@
 package io.chw.backend.app
 
 import io.chw.backend.dao.MemberRepository
-import io.chw.backend.dto.MemberDescription
 import io.chw.backend.dto.Role
 import io.chw.backend.util.genMember
 import io.chw.backend.util.genMemberDesc
@@ -14,7 +13,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.assertThrows
 
 
 class MemberServiceUnitTest {
@@ -43,6 +42,69 @@ class MemberServiceUnitTest {
 
     }
 
+    @Test
+    fun `회원이 저장되어있고 findByEmail을 호출하면 회원을 정상적으로 조회한다`() {
+
+        // given
+        val actualName = "member1"
+        val actualEmail = "member1@email.com"
+        val actualRole = Role.BRONZE
+
+        val expected = genMember(actualName, actualEmail, actualRole)
+
+        every { repository.findByEmail(actualEmail) } returns expected
+
+        val actual = service.findByEmail(actualEmail)
+
+        actual.name shouldBe actualName
+        actual.email shouldBe actualEmail
+        actual.role shouldBe actualRole
+
+    }
+
+    @Test
+    fun `없는 회원의 이메일로 findByEmail을 호출하면 NoSuchElementException이 발생한다`() {
+
+        val unavailableEmail = "UNAVAILABLE_EMAIL"
+
+        every { repository.findByEmail(unavailableEmail) } returns null
+
+        val actual = assertThrows<NoSuchElementException> { service.findByEmail(unavailableEmail) }
+
+        verify(exactly = 1) { repository.findByEmail(unavailableEmail) }
+        actual.message shouldBe "해당 회원은 존재하지 않습니다."
+    }
+
+    @Test
+    fun `회원이 저장되어있고 getDescByEmail을 호출하면 MemberDescription을 정상적으로 반환한다`() {
+
+        val targetEmail = "member1@email.com"
+        val expected = genMember("member1", targetEmail)
+
+        every { repository.findByEmail(targetEmail) } returns expected
+
+        val actual = service.getDescByEmail(targetEmail)
+
+        verify(exactly = 1) { repository.findByEmail(targetEmail) }
+
+        actual.name shouldBe expected.name
+        actual.email shouldBe expected.email
+        actual.role shouldBe expected.role
+    }
+
+    @Test
+    fun `잘못된 이메일로 getDescByEmail을 호출하면 NoSuchElementException이 발생한다`() {
+
+        val unavailableEmail = "UNAVAILABLE_EMAIL"
+
+        every { repository.findByEmail(unavailableEmail) } returns null
+
+        val actual = assertThrows<NoSuchElementException> { service.getDescByEmail(unavailableEmail) }
+
+        verify(exactly = 1) { repository.findByEmail(unavailableEmail) }
+        actual.message shouldBe "해당 회원은 존재하지 않습니다."
+
+    }
 }
 
 // #1. BDD Style - Behavior
